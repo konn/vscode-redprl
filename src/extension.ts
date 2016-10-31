@@ -72,7 +72,7 @@ class Session {
 
     while ((matchDiagnostic = Pattern.diagnostic.exec(response)) != null) {
       matchDiagnostic.shift();
-      this.output.appendLine(JSON.stringify(matchDiagnostic));
+      // this.output.appendLine(JSON.stringify(matchDiagnostic));
       const [path, startLineRaw, startCharRaw, endLineRaw, endCharRaw, kind, message] = matchDiagnostic;
       let severity: null | vscode.DiagnosticSeverity = null;
       switch (kind) {
