@@ -62,25 +62,24 @@ class Session {
     while ((match = Pattern.diagnostic.exec(response)) != null) {
       match.shift();
       const [path, startLineRaw, startCharRaw, endLineRaw, endCharRaw, kind, message] = match;
+      let uri: vscode.Uri;
+      try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue }
       let severity: null | vscode.DiagnosticSeverity = null;
       switch (kind) {
         case   "Error": severity = vscode.DiagnosticSeverity.Information; break;
         case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
         case "Warning": severity = vscode.DiagnosticSeverity.Warning;     break;
       }
-      if (severity != null) {
-        let uri: vscode.Uri;
-        try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue }
-        const startLine = parseInt(startLineRaw);
-        const startChar = parseInt(startCharRaw);
-        const   endLine = parseInt(  endLineRaw);
-        const   endChar = parseInt(  endCharRaw);
-        if (!collated.has(uri)) collated.set(uri, []);
-        const diagnostics = collated.get(uri) as vscode.Diagnostic[];
-        const range = new vscode.Range(startLine, startChar, endLine, endChar);
-        const entry = new vscode.Diagnostic(range, message, severity);
-        diagnostics.push(entry);
-      }
+      if (severity == null) continue;
+      const startLine = parseInt(startLineRaw);
+      const startChar = parseInt(startCharRaw);
+      const   endLine = parseInt(  endLineRaw);
+      const   endChar = parseInt(  endCharRaw);
+      if (!collated.has(uri)) collated.set(uri, []);
+      const diagnostics = collated.get(uri) as vscode.Diagnostic[];
+      const range = new vscode.Range(startLine, startChar, endLine, endChar);
+      const entry = new vscode.Diagnostic(range, message, severity);
+      diagnostics.push(entry);
     }
     const entries = Array.from(collated.entries());
     this.diagnostics.set(entries);
