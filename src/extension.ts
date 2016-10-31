@@ -8,7 +8,7 @@ const configuration = {
 };
 
 class Pattern {
-  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[\b(Error|Info|Warning)\b\]:\n\s*([\s\S]*?)\s*^\s*(?=-)([\s\S]*?)(?=\s*\n\n)/gmu;
+  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[\b(Error|Info|Warning)\b\]:\n\s*([\s\S]*?)\s*^\s*(?:(?=-)([\s\S]*?))?(?=\s*\n\n)/gmu;
 }
 
 class Session {
@@ -38,6 +38,7 @@ class Session {
     const child = childProcess.spawn(this.config.path, [fileName]);
     return new Promise<null | string>((resolve) => {
       let buffer = "";
+      child.stderr.on("data", (data: Buffer | string) => buffer += data);
       child.stdout.on("data", (data: Buffer | string) => buffer += data);
       child.on("close", (code: number) => code === 0 || code === 1 ? resolve(buffer) : resolve(null));
       child.on("error", (error: Error & { code: string }) => {
@@ -66,7 +67,7 @@ class Session {
       try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue }
       let severity: null | vscode.DiagnosticSeverity = null;
       switch (kind) {
-        case   "Error": severity = vscode.DiagnosticSeverity.Information; break;
+        case   "Error": severity = vscode.DiagnosticSeverity.Error;       break;
         case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
         case "Warning": severity = vscode.DiagnosticSeverity.Warning;     break;
       }
