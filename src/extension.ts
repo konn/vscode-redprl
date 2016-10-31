@@ -58,21 +58,15 @@ class Session {
   async refreshDiagnostics(response: string): Promise<void> {
     this.diagnostics.clear();
     let collated: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
-    let matchDiagnostic: null | RegExpExecArray = null;
-    while ((matchDiagnostic = Pattern.diagnostic.exec(response)) != null) {
-      matchDiagnostic.shift();
-      const [path, startLineRaw, startCharRaw, endLineRaw, endCharRaw, kind, message] = matchDiagnostic;
+    let match: null | RegExpExecArray = null;
+    while ((match = Pattern.diagnostic.exec(response)) != null) {
+      match.shift();
+      const [path, startLineRaw, startCharRaw, endLineRaw, endCharRaw, kind, message] = match;
       let severity: null | vscode.DiagnosticSeverity = null;
       switch (kind) {
-        case "Error":
-          severity = vscode.DiagnosticSeverity.Information;
-          break;
-        case "Info":
-          severity = vscode.DiagnosticSeverity.Information;
-          break;
-        case "Warning":
-          severity = vscode.DiagnosticSeverity.Warning;
-          break;
+        case   "Error": severity = vscode.DiagnosticSeverity.Information; break;
+        case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
+        case "Warning": severity = vscode.DiagnosticSeverity.Warning;     break;
       }
       if (severity != null) {
         let uri: vscode.Uri;
