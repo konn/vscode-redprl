@@ -8,7 +8,8 @@ const configuration = {
 };
 
 class Pattern {
-  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[\b(Error|Info|Warning)\b\]:\n\s*([\s\S]*?)\s*^\s*(?:(?=-)([\s\S]*?))?(?=\s*\n\n)/gmu;
+  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[(Error|Info|Output|Warning)\]:\n\s\s([\s\S]*?)\s*^\s*(?:(?=-)(?:.*\n){6}\s*([\s\S]*?))?(?=\s*\n\n)/gmu;
+  static symbol = /^\b(Def|Tac|Thm)\b\s*\b(\w+)\b/u
 }
 
 class Session {
@@ -18,6 +19,7 @@ class Session {
   };
   public readonly diagnostics: vscode.DiagnosticCollection;
   public readonly output: vscode.OutputChannel;
+  public readonly symbols: Map<string, vscode.SymbolInformation[]> = new Map();
 
   constructor()
   {
@@ -50,60 +52,86 @@ class Session {
     });
   }
 
-  async refresh(textDocument: vscode.TextDocument): Promise<void> {
-    const response = await this.execute(textDocument.fileName);
-    if (response != null) await this.refreshDiagnostics(response);
-  }
-
-  // NOTE: some of this data should probably be displayed in a virtual document in a separate panel
-  async refreshDiagnostics(response: string): Promise<void> {
+  async refresh(document: vscode.TextDocument): Promise<void> {
+    const response = await this.execute(document.fileName);
+    if (response == null) return;
     this.diagnostics.clear();
-    let collated: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
+    let collatedDiagnostics: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
+    let symbols: vscode.SymbolInformation[] = [];
     let match: null | RegExpExecArray = null;
     while ((match = Pattern.diagnostic.exec(response)) != null) {
-      match.shift();
-      const [path, startLineRaw, startCharRaw, endLineRaw, endCharRaw, kind, message] = match;
+      match.shift(); // throw away entire match since we only want the captures
+      const path = match.shift() as string;
       let uri: vscode.Uri;
       try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue }
-      let severity: null | vscode.DiagnosticSeverity = null;
-      switch (kind) {
-        case   "Error": severity = vscode.DiagnosticSeverity.Error;       break;
-        case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
-        case "Warning": severity = vscode.DiagnosticSeverity.Warning;     break;
-      }
-      if (severity == null) continue;
-      const startLine = parseInt(startLineRaw) - 1;
-      const startChar = parseInt(startCharRaw) - 1;
-      const   endLine = parseInt(  endLineRaw) - 1;
-      const   endChar = parseInt(  endCharRaw) - 1;
-      if (!collated.has(uri)) collated.set(uri, []);
-      const diagnostics = collated.get(uri) as vscode.Diagnostic[];
+      const startLine = parseInt(match.shift() as string) - 1;
+      const startChar = parseInt(match.shift() as string) - 1;
+      const   endLine = parseInt(match.shift() as string) - 1;
+      const   endChar = parseInt(match.shift() as string) - 1;
       const range = new vscode.Range(startLine, startChar, endLine, endChar);
-      const entry = new vscode.Diagnostic(range, message, severity);
-      diagnostics.push(entry);
+      const messageKind = match.shift() as string;
+      if (messageKind === "Output") {
+        const output = match.shift() as string;
+        const result = output.match(Pattern.symbol);
+        if (result == null) continue;
+        result.shift();
+        const [symbolWire, name] = result;
+        let symbolCode = vscode.SymbolKind.Null;
+        switch (symbolWire) {
+          case "Def": symbolCode = vscode.SymbolKind.Function; break;
+          case "Tac": symbolCode = vscode.SymbolKind.Interface; break;
+          case "Thm": symbolCode = vscode.SymbolKind.Null; break;
+        }
+        const location = new vscode.Location(uri, range);
+        symbols.push(new vscode.SymbolInformation(name, symbolCode, "", location));
+      } else {
+        let severity: null | vscode.DiagnosticSeverity = null;
+        switch (messageKind) {
+          case   "Error": severity = vscode.DiagnosticSeverity.Error; break;
+          case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
+          case "Warning": severity = vscode.DiagnosticSeverity.Warning; break;
+        }
+        if (severity == null) continue;
+        if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
+        const diagnostics = collatedDiagnostics.get(uri) as vscode.Diagnostic[];
+        const message = match.shift() as string;
+        const entry = new vscode.Diagnostic(range, message, severity);
+        diagnostics.push(entry);
+      }
     }
-    const entries = Array.from(collated.entries());
-    this.diagnostics.set(entries);
+    this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
+    this.symbols.set(document.uri.toString(), symbols);
   }
+}
+
+function documentSymbolProvider(session: Session): vscode.DocumentSymbolProvider {
+  return {
+    provideDocumentSymbols: async (document) => {
+      if (document.languageId !== "redprl") return;
+      if (!session.symbols.has(document.uri.toString())) await session.refresh(document);
+      return session.symbols.get(document.uri.toString());
+    },
+  };
 }
 
 function onDidChangeConfiguration(session: Session): () => void {
   return () => (session as any).config = vscode.workspace.getConfiguration("redprl");
 }
 
-function onDidSaveTextDocument(session: Session): (textDocument: vscode.TextDocument) => void {
-  return (textDocument) => {
-    if (textDocument.languageId !== "redprl") return;
-    if (session.config.enableDiagnosticsOnSave) session.refresh(textDocument);
+function onDidSaveTextDocument(session: Session): (document: vscode.TextDocument) => void {
+  return (document) => {
+    if (document.languageId !== "redprl") return;
+    if (session.config.enableDiagnosticsOnSave) session.refresh(document);
   };
 }
 
 export function activate(context: vscode.ExtensionContext) {
   const session = new Session();
-  context.subscriptions.push(vscode.languages.setLanguageConfiguration("redprl", configuration));
   context.subscriptions.push(vscode.commands.registerTextEditorCommand("redprl.refreshDiagnostics", (editor) => session.refresh(editor.document)));
-  vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration(session));
-  vscode.workspace.onDidSaveTextDocument(onDidSaveTextDocument(session));
+  context.subscriptions.push(vscode.languages.setLanguageConfiguration("redprl", configuration));
+  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: 'redprl' }, documentSymbolProvider(session)));
+  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration(session)));
+  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(onDidSaveTextDocument(session)));
 }
 
 export function deactivate() {
