@@ -71,10 +71,10 @@ class Session {
         case "Warning": severity = vscode.DiagnosticSeverity.Warning;     break;
       }
       if (severity == null) continue;
-      const startLine = parseInt(startLineRaw);
-      const startChar = parseInt(startCharRaw);
-      const   endLine = parseInt(  endLineRaw);
-      const   endChar = parseInt(  endCharRaw);
+      const startLine = parseInt(startLineRaw) - 1;
+      const startChar = parseInt(startCharRaw) - 1;
+      const   endLine = parseInt(  endLineRaw) - 1;
+      const   endChar = parseInt(  endCharRaw) - 1;
       if (!collated.has(uri)) collated.set(uri, []);
       const diagnostics = collated.get(uri) as vscode.Diagnostic[];
       const range = new vscode.Range(startLine, startChar, endLine, endChar);
