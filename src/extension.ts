@@ -63,7 +63,6 @@ class Session {
     let symbols: vscode.SymbolInformation[] = [];
     let diagnosticMatch: null | RegExpExecArray = null;
     while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) {
-      const goalStack: vscode.Diagnostic[] = [];
       diagnosticMatch.shift(); // throw away entire match since we only want the captures
       const path = diagnosticMatch.shift() as string;
       let uri: vscode.Uri;
@@ -120,14 +119,13 @@ class Session {
             }
             const entry = new vscode.Diagnostic(range, goalMessage, vscode.DiagnosticSeverity.Information);
             // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
-            goalStack.push(entry);
+            diagnostics.push(entry);
           }
           // if we found goals, skip the next step since we already added diagnostics
           if (goalsFound > 0) message = "Remaining Obligations";
         }
         const entry = new vscode.Diagnostic(range, message, severity);
         diagnostics.push(entry);
-        while (goalStack.length > 0) diagnostics.push(goalStack.pop() as any); // display the goals in order
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
