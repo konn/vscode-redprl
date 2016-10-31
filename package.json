@@ -1,0 +1,88 @@
+{
+  "private": true,
+  "name": "redprl",
+  "displayName": "RedPRL",
+  "description": "RedPRL language support",
+  "version": "0.0.0",
+  "publisher": "freebroccolo",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/freebroccolo/vscode-redprl/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/freebroccolo/vscode-redprl.git"
+  },
+  "engines": {
+    "vscode": "^1.5.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:redprl"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "redprl.refreshDiagnostics",
+        "title": "RedPRL: refresh diagnostics"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "RedPRL configuration",
+      "properties": {
+        "redprl.enableDiagnosticsOnSave": {
+          "description": "Enable diagnostic refreshing when RedPRL documents are saved.",
+          "type": "boolean",
+          "default": true
+        },
+        "redprl.path": {
+          "description": "Path to the RedPRL binary.",
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string" }
+          ],
+          "default": null
+        }
+      }
+    },
+    "grammars": [
+      {
+        "language": "redprl",
+        "scopeName": "source.redprl",
+        "path": "./syntaxes/redprl.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "redprl",
+        "aliases": [
+          "RedPRL"
+        ],
+        "extensions": [
+          ".prl"
+        ],
+        "configuration": "./redprl.configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "vscode:prepublish": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^6.0.40",
+    "tslint": "^3.13.0",
+    "typescript": "^2.0.6",
+    "vscode": "^1.0.3"
+  },
+  "dependencies": {
+  },
+  "extensionDependencies": []
+}

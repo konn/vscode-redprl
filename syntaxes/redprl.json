@@ -1,0 +1,349 @@
+{
+  "scopeName": "source.redprl",
+  "fileTypes": [
+    "prl"
+  ],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#definition" },
+    { "include": "#record" },
+    { "include": "#symbol" },
+    { "include": "#tactic" },
+    { "include": "#theorem" }
+  ],
+  "repository": {
+    "bind-name-args": {
+      "begin": "\\G",
+      "end": "([:=])",
+      "endCaptures": {
+        "1": { "name": "markup.raw keyword.control.less message.error" }
+      },
+      "patterns": [
+        {
+          "begin": "\\G",
+          "end": "\\b([[:word:]]+)\\b",
+          "endCaptures": {
+            "1": { "name": "entity.name.function" }
+          }
+        },
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            { "include": "#body" }
+          ]
+        }
+      ]
+    },
+    "body": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#keyword" },
+        { "include": "#body-angles" },
+        { "include": "#body-braces" },
+        { "include": "#body-parens" },
+        { "include": "#body-squares" },
+        {
+          "match": "[;#]",
+          "name": "comment"
+        },
+        {
+          "match": "(->|,|:|\\.|@|\\*|'|%|`|<-|<\\||=(?!>)|=>|\\|(?!>)|\\|>|\\|\\||\\||~(?!>)|~>)",
+          "name": "keyword.control.less message.error"
+        }
+      ]
+    },
+    "body-angles": {
+      "begin": "<",
+      "end": ">",
+      "patterns": [
+        { "include": "#body" },
+        {
+          "match": "\\b([[:word:]]+)\\b",
+          "name": "constant.language support.property-value entity.name.filename variable.interpolation"
+        }
+      ]
+    },
+    "body-braces": {
+      "begin": "[{]",
+      "end": "[}]",
+      "patterns": [
+        { "include": "#body" }
+      ]
+    },
+    "body-parens": {
+      "patterns": [
+        {
+          "begin": "\\((?=[[:space:]]*\\[)",
+          "end": "\\)",
+          "patterns": [
+            {
+              "begin": "(?<=[(])",
+              "end": "([.])",
+              "endCaptures": {
+                "1": { "name": "markup.raw keyword.control.less message.error" }
+              },
+              "patterns": [
+                {
+                  "begin": "\\[",
+                  "end": "\\]",
+                  "patterns": [
+                    {
+                      "match": "\\b([[:word:]]+)\\b",
+                      "name": "variable.parameter string.other.link"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "begin": "(?<=[.])",
+              "end": "(?=[)])",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "\\((?=[[:space:]]*[{])",
+          "end": "\\)",
+          "patterns": [
+            {
+              "begin": "(?<=[(])",
+              "end": "([.])",
+              "endCaptures": {
+                "1": { "name": "markup.raw keyword.control.less message.error" }
+              },
+              "patterns": [
+                {
+                  "begin": "[{]",
+                  "end": "[}]",
+                  "patterns": [
+                    {
+                      "match": "\\b([[:word:]]+)\\b",
+                      "name": "variable.parameter string.other.link"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "begin": "(?<=[.])",
+              "end": "(?=[)])",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "\\((?=[[:space:]]*[[:word:]]+[[:space:]]*:)",
+          "end": "\\)",
+          "patterns": [
+            {
+              "begin": "(?<=[(])",
+              "end": "(:)",
+              "endCaptures": {
+                "1": { "name": "markup.raw keyword.control.less message.error" }
+              },
+              "patterns": [
+                {
+                  "begin": "\\G",
+                  "end": "\\b([[:word:]]+)\\b",
+                  "endCaptures": {
+                    "1": { "name": "variable.parameter string.other.link" }
+                  }
+                }
+              ]
+            },
+            {
+              "begin": "(?<=:)",
+              "end": "(?=[)])",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            { "include": "#body" }
+          ]
+        }
+      ]
+    },
+    "body-squares": {
+      "begin": "\\[",
+      "end": "\\]",
+      "patterns": [
+        { "include": "#body" }
+      ]
+    },
+    "comment": {
+      "match": "//.*$",
+      "name": "comment.line"
+    },
+    "definition": {
+      "begin": "\\b(Def)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      },
+      "patterns": [
+        { "include": "#bind-name-args" },
+        {
+          "begin": "(?<=:)",
+          "end": "(=)",
+          "endCaptures": {
+            "1": { "name": "keyword.control.less" }
+          },
+          "patterns": [
+            { "include": "#body" }
+          ]
+        },
+        {
+          "begin": "(?<==)",
+          "end": "(?=[.])",
+          "patterns": [
+            {
+              "begin": "\\[",
+              "end": "\\]",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "begin": "\\b(lam)\\b",
+          "end": "(?=[.(])",
+          "beginCaptures": {
+            "1": { "name": "storage.type" }
+          },
+          "patterns": [
+            {
+              "begin": "\\G",
+              "end": "\\b([[:word:]]+)\\b",
+              "endCaptures": {
+                "1": { "name": "variable.parameter string.other.link" }
+              }
+            }
+          ]
+        },
+        {
+          "begin": "\\b(let)\\b",
+          "end": "(?=[.])",
+          "beginCaptures": {
+            "1": { "name": "storage.type" }
+          },
+          "patterns": [
+            {
+              "begin": "\\G",
+              "end": "\\b([[:word:]]+)\\b",
+              "endCaptures": {
+                "1": { "name": "variable.parameter string.other.link" }
+              }
+            },
+            {
+              "begin": "([:=])",
+              "end": "(?=[.])",
+              "beginCaptures": {
+                "1": { "name": "keyword.control.less" }
+              },
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        },
+        {
+          "match": "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ)\\b",
+          "name": "constant.language"
+        },
+        {
+          "match": "\\b(case|else|of|then|with)\\b",
+          "name": "keyword.control"
+        },
+        {
+          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
+          "name": "keyword.control.less message.error"
+        }
+      ]
+    },
+    "tactic": {
+      "begin": "\\b(Tac)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      },
+      "patterns": [
+        { "include": "#bind-name-args" },
+        {
+          "begin": "(?<==)",
+          "end": "(?=[.])",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.less" }
+          },
+          "patterns": [
+            {
+              "begin": "\\[",
+              "end": "\\]",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "theorem": {
+      "begin": "\\b(Thm)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      },
+      "patterns": [
+        { "include": "#bind-name-args" },
+        {
+          "begin": "(?<=[:])",
+          "end": "\\b(by)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control" }
+          },
+          "patterns": [
+            { "include": "#body-squares" }
+          ]
+        },
+        {
+          "begin": "(?<=by)",
+          "end": "(?=[.])",
+          "patterns": [
+            {
+              "begin": "\\[",
+              "end": "\\]",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
