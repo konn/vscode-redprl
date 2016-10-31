@@ -8,7 +8,9 @@ const configuration = {
 };
 
 class Pattern {
-  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[(Error|Info|Output|Warning)\]:\n\s\s([\s\S]*?)\s*^\s*(?:(?=-)(?:.*\n){6}\s*([\s\S]*?))?(?=\s*\n\n)/gmu;
+  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[(Error|Info|Output|Warning)\]:\n[ ]{2}([\s\S]*?\n)\s*^\s*(?:(?=-)(?:.*\n){6}\s*([\s\S]*?))?(?=\s*\n{2})/gmu;
+  static goal = /[ ]{2}Goal\s*(\d+)[.]\n([\s\S]*?)(?=\s*Goal|$)/gu;
+  static goalItem = /^[ ]{4}(.*)$/gmu;
   static symbol = /^\b(Def|Tac|Thm)\b\s*\b(\w+)\b/u
 }
 
@@ -24,7 +26,7 @@ class Session {
   constructor()
   {
     this.config = vscode.workspace.getConfiguration("redprl") as any;
-    this.diagnostics = vscode.languages.createDiagnosticCollection("RedPRL");
+    this.diagnostics = vscode.languages.createDiagnosticCollection("redprl");
     this.output = vscode.window.createOutputChannel("RedPRL");
     if (this.config.path == null) {
       vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
@@ -52,28 +54,31 @@ class Session {
     });
   }
 
+  // FIXME: time to split this up…
   async refresh(document: vscode.TextDocument): Promise<void> {
     const response = await this.execute(document.fileName);
-    if (response == null) return;
+    if (response == null) return; // redprl failed
     this.diagnostics.clear();
     let collatedDiagnostics: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
     let symbols: vscode.SymbolInformation[] = [];
-    let match: null | RegExpExecArray = null;
-    while ((match = Pattern.diagnostic.exec(response)) != null) {
-      match.shift(); // throw away entire match since we only want the captures
-      const path = match.shift() as string;
+    let diagnosticMatch: null | RegExpExecArray = null;
+    while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) {
+      const goalStack: vscode.Diagnostic[] = [];
+      diagnosticMatch.shift(); // throw away entire match since we only want the captures
+      const path = diagnosticMatch.shift() as string;
       let uri: vscode.Uri;
-      try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue }
-      const startLine = parseInt(match.shift() as string) - 1;
-      const startChar = parseInt(match.shift() as string) - 1;
-      const   endLine = parseInt(match.shift() as string) - 1;
-      const   endChar = parseInt(match.shift() as string) - 1;
+      try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue } // uri parsing failed
+      const startLine = parseInt(diagnosticMatch.shift() as string) - 1;
+      const startChar = parseInt(diagnosticMatch.shift() as string) - 1;
+      const   endLine = parseInt(diagnosticMatch.shift() as string) - 1;
+      const   endChar = parseInt(diagnosticMatch.shift() as string) - 1;
       const range = new vscode.Range(startLine, startChar, endLine, endChar);
-      const messageKind = match.shift() as string;
+      const messageKind = diagnosticMatch.shift() as string;
+      // parse symbols
       if (messageKind === "Output") {
-        const output = match.shift() as string;
+        const output = diagnosticMatch.shift() as string;
         const result = output.match(Pattern.symbol);
-        if (result == null) continue;
+        if (result == null) continue; // symbol parsing failed
         result.shift();
         const [symbolWire, name] = result;
         let symbolCode = vscode.SymbolKind.Null;
@@ -84,19 +89,45 @@ class Session {
         }
         const location = new vscode.Location(uri, range);
         symbols.push(new vscode.SymbolInformation(name, symbolCode, "", location));
-      } else {
+      }
+      // parse diagnostics
+      else {
         let severity: null | vscode.DiagnosticSeverity = null;
         switch (messageKind) {
           case   "Error": severity = vscode.DiagnosticSeverity.Error; break;
           case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
           case "Warning": severity = vscode.DiagnosticSeverity.Warning; break;
         }
-        if (severity == null) continue;
+        if (severity == null) continue; // diagnostic parsing failed
         if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
         const diagnostics = collatedDiagnostics.get(uri) as vscode.Diagnostic[];
-        const message = match.shift() as string;
+        let message = diagnosticMatch.shift() as string;
+        // here we split up the goals into individual diagnostics since it looks better in vscode
+        if (messageKind === "Warning") {
+          const remainingGoalsMessage = message;
+          let goalMatch: null | RegExpExecArray = null;
+          let goalsFound = 0;
+          while ((goalMatch = Pattern.goal.exec(remainingGoalsMessage)) != null) {
+            goalsFound++;
+            goalMatch.shift();
+            const [goalNumber, goalItems] = goalMatch;
+            let goalMessage = `[#${goalNumber}]${"\n"}`;
+            let itemMatch: null | RegExpExecArray = null;
+            while ((itemMatch = Pattern.goalItem.exec(goalItems)) != null) {
+              goalMessage += "";
+              goalMessage += itemMatch[1].trim();
+              goalMessage += ";\n";
+            }
+            const entry = new vscode.Diagnostic(range, goalMessage, vscode.DiagnosticSeverity.Information);
+            // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
+            goalStack.push(entry);
+          }
+          // if we found goals, skip the next step since we already added diagnostics
+          if (goalsFound > 0) message = "Remaining Obligations";
+        }
         const entry = new vscode.Diagnostic(range, message, severity);
         diagnostics.push(entry);
+        while (goalStack.length > 0) diagnostics.push(goalStack.pop() as any); // display the goals in order
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
