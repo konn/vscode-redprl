@@ -21,7 +21,7 @@
       "patterns": [
         {
           "begin": "\\G",
-          "end": "\\b([[:word:]]+)\\b",
+          "end": "\\b([[:word:]\\-\\/]+)\\b",
           "endCaptures": {
             "1": { "name": "entity.name.function" }
           }
