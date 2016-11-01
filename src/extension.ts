@@ -20,6 +20,7 @@ class Session {
     path: null | string;
   };
   public readonly diagnostics: vscode.DiagnosticCollection;
+  public readonly lenses: Map<string, vscode.CodeLens[]> = new Map();
   public readonly output: vscode.OutputChannel;
   public readonly symbols: Map<string, vscode.SymbolInformation[]> = new Map();
 
@@ -61,6 +62,7 @@ class Session {
     if (response == null) return; // redprl failed
     this.diagnostics.clear();
     let collatedDiagnostics: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
+    let lenses: vscode.CodeLens[] = [];
     let symbols: vscode.SymbolInformation[] = [];
     let diagnosticMatch: null | RegExpExecArray = null;
     while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) {
@@ -122,16 +124,35 @@ class Session {
             // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
             goalStack.push(entry);
           }
-          if (goalsFound > 0) message = "Remaining Obligations";
+          if (goalsFound > 0) {
+            message = "Remaining Obligations";
+            let enclosing = symbols.find((symbol) => symbol.location.range.contains(range));
+            if (enclosing) {
+              const command = { command: "", title: `${goalsFound} goals` };
+              lenses.push(new vscode.CodeLens(enclosing.location.range, command));
+            }
+          }
         }
         const entry = new vscode.Diagnostic(range, message, severity);
         diagnostics.push(entry);
-        while (goalStack.length > 0) diagnostics.push(goalStack.shift() as any);
+        for (const goal of goalStack) diagnostics.push(goal);
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
+    this.lenses.set(document.uri.toString(), lenses);
     this.symbols.set(document.uri.toString(), symbols);
   }
+}
+
+function codeLensProvider(session: Session): vscode.CodeLensProvider {
+  return {
+    provideCodeLenses: async (document) => {
+      if (document.languageId !== "redprl") return [];
+      if (!session.lenses.has(document.uri.toString())) await session.refresh(document);
+      const lenses = session.lenses.get(document.uri.toString());
+      return lenses || [];
+    },
+  };
 }
 
 function documentSymbolProvider(session: Session): vscode.DocumentSymbolProvider {
@@ -159,7 +180,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const session = new Session();
   context.subscriptions.push(vscode.commands.registerTextEditorCommand("redprl.refreshDiagnostics", (editor) => session.refresh(editor.document)));
   context.subscriptions.push(vscode.languages.setLanguageConfiguration("redprl", configuration));
-  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: 'redprl' }, documentSymbolProvider(session)));
+  context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: "redprl" }, codeLensProvider(session)));
+  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: "redprl" }, documentSymbolProvider(session)));
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration(session)));
   context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(onDidSaveTextDocument(session)));
   context.subscriptions.push(session);
