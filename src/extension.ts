@@ -28,13 +28,14 @@ class Session {
     this.config = vscode.workspace.getConfiguration("redprl") as any;
     this.diagnostics = vscode.languages.createDiagnosticCollection("redprl");
     this.output = vscode.window.createOutputChannel("RedPRL");
-    if (this.config.path == null) {
-      vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
-    }
+    if (this.config.path == null) vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
     return this;
   }
 
-  execute(fileName: string): Promise<null | string> {
+  public dispose(): void {
+  }
+
+  public execute(fileName: string): Promise<null | string> {
     if (this.config.path == null) {
       vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
       return Promise.resolve(null);
@@ -55,7 +56,7 @@ class Session {
   }
 
   // FIXME: time to split this up…
-  async refresh(document: vscode.TextDocument): Promise<void> {
+  public async refresh(document: vscode.TextDocument): Promise<void> {
     const response = await this.execute(document.fileName);
     if (response == null) return; // redprl failed
     this.diagnostics.clear();
@@ -114,7 +115,6 @@ class Session {
             let goalMessage = `[#${goalNumber}]${"\n"}`;
             let itemMatch: null | RegExpExecArray = null;
             while ((itemMatch = Pattern.goalItem.exec(goalItems)) != null) {
-              goalMessage += "";
               goalMessage += itemMatch[1].trim();
               goalMessage += ";\n";
             }
@@ -122,7 +122,6 @@ class Session {
             // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
             goalStack.push(entry);
           }
-          // if we found goals, skip the next step since we already added diagnostics
           if (goalsFound > 0) message = "Remaining Obligations";
         }
         const entry = new vscode.Diagnostic(range, message, severity);
@@ -156,15 +155,16 @@ function onDidSaveTextDocument(session: Session): (document: vscode.TextDocument
   };
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
   const session = new Session();
   context.subscriptions.push(vscode.commands.registerTextEditorCommand("redprl.refreshDiagnostics", (editor) => session.refresh(editor.document)));
   context.subscriptions.push(vscode.languages.setLanguageConfiguration("redprl", configuration));
   context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: 'redprl' }, documentSymbolProvider(session)));
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration(session)));
   context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(onDidSaveTextDocument(session)));
+  context.subscriptions.push(session);
 }
 
-export function deactivate() {
+export function deactivate(): void {
   return;
 }
