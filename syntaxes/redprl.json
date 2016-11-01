@@ -9,7 +9,8 @@
     { "include": "#record" },
     { "include": "#symbol" },
     { "include": "#tactic" },
-    { "include": "#theorem" }
+    { "include": "#theorem" },
+    { "include": "#print" }
   ],
   "repository": {
     "bind-name-args": {
@@ -279,6 +280,16 @@
           "name": "keyword.control.less message.error"
         }
       ]
+    },
+    "print": {
+      "begin": "\\b(Print)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      }
     },
     "tactic": {
       "begin": "\\b(Tac)\\b",
