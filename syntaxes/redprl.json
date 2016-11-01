@@ -7,7 +7,6 @@
     { "include": "#comment" },
     { "include": "#definition" },
     { "include": "#record" },
-    { "include": "#symbol" },
     { "include": "#tactic" },
     { "include": "#theorem" },
     { "include": "#print" }
