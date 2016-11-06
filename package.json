@@ -3,7 +3,7 @@
   "name": "redprl",
   "displayName": "RedPRL",
   "description": "RedPRL language support",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "freebroccolo",
   "license": "Apache-2.0",
   "bugs": {
