@@ -8,10 +8,10 @@ const configuration = {
 };
 
 class Pattern {
-  static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[(Error|Info|Output|Warning)\]:\n[ ]{2}([\s\S]*?\n)\s*^\s*(?:(?=-)(?:.*\n){6}\s*([\s\S]*?))?(?=\s*\n{2})/gmu;
-  static goal = /[ ]{2}Goal\s*(\d+)[.]\n([\s\S]*?)(?=\s*Goal|$)/gu;
-  static goalItem = /^[ ]{4}(.*)$/gmu;
-  static symbol = /^\b(Def|Tac|Thm)\b\s*\b([\w\-\/]+)\b/u
+  public static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[(Error|Info|Output|Warning)\]:\n[ ]{2}([\s\S]*?\n)\s*^\s*(?:(?=-)(?:.*\n){6}\s*([\s\S]*?))?(?=\s*\n{2})/gmu;
+  public static goal = /[ ]{2}Goal\s*(\d+)[.]\n([\s\S]*?)(?=\s*Goal|$)/gu;
+  public static goalItem = /^[ ]{4}(.*)$/gmu;
+  public static symbol = /^\b(Def|Tac|Thm)\b\s*\b([\w\-\/]+)\b/u;
 }
 
 class Session {
@@ -23,8 +23,7 @@ class Session {
   public readonly output: vscode.OutputChannel;
   public readonly symbols: Map<string, vscode.SymbolInformation[]> = new Map();
 
-  constructor()
-  {
+  constructor() {
     this.config = vscode.workspace.getConfiguration("redprl") as any;
     this.diagnostics = vscode.languages.createDiagnosticCollection("redprl");
     this.output = vscode.window.createOutputChannel("RedPRL");
@@ -33,13 +32,14 @@ class Session {
   }
 
   public dispose(): void {
+    return;
   }
 
   public execute(fileName: string): Promise<null | string> {
     if (this.config.path == null) {
       vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
       return Promise.resolve(null);
-    };
+    }
     const child = childProcess.spawn(this.config.path, [fileName]);
     return new Promise<null | string>((resolve) => {
       let buffer = "";
@@ -63,16 +63,16 @@ class Session {
     let collatedDiagnostics: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
     let symbols: vscode.SymbolInformation[] = [];
     let diagnosticMatch: null | RegExpExecArray = null;
-    while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) {
+    while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) { // tslint:disable-line no-conditional-assignment
       const goalStack: vscode.Diagnostic[] = [];
       diagnosticMatch.shift(); // throw away entire match since we only want the captures
       const path = diagnosticMatch.shift() as string;
       let uri: vscode.Uri;
-      try { uri = vscode.Uri.parse(`file://${path}`) } catch (err) { continue } // uri parsing failed
-      const startLine = parseInt(diagnosticMatch.shift() as string) - 1;
-      const startChar = parseInt(diagnosticMatch.shift() as string) - 1;
-      const   endLine = parseInt(diagnosticMatch.shift() as string) - 1;
-      const   endChar = parseInt(diagnosticMatch.shift() as string) - 1;
+      try { uri = vscode.Uri.parse(`file://${path}`); } catch (err) { continue; } // uri parsing failed
+      const startLine = parseInt(diagnosticMatch.shift() as string, 10) - 1;
+      const startChar = parseInt(diagnosticMatch.shift() as string, 10) - 1;
+      const   endLine = parseInt(diagnosticMatch.shift() as string, 10) - 1;
+      const   endChar = parseInt(diagnosticMatch.shift() as string, 10) - 1;
       const range = new vscode.Range(startLine, startChar, endLine, endChar);
       const messageKind = diagnosticMatch.shift() as string;
       // parse symbols
@@ -87,17 +87,17 @@ class Session {
           case "Def": symbolCode = vscode.SymbolKind.Function; break;
           case "Tac": symbolCode = vscode.SymbolKind.Interface; break;
           case "Thm": symbolCode = vscode.SymbolKind.Null; break;
+          default: break;
         }
         const location = new vscode.Location(uri, range);
         symbols.push(new vscode.SymbolInformation(name, symbolCode, "", location));
-      }
-      // parse diagnostics
-      else {
+      } else { // parse diagnostics
         let severity: null | vscode.DiagnosticSeverity = null;
         switch (messageKind) {
           case   "Error": severity = vscode.DiagnosticSeverity.Error; break;
           case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
           case "Warning": severity = vscode.DiagnosticSeverity.Warning; break;
+          default: break;
         }
         if (severity == null) continue; // diagnostic parsing failed
         if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
@@ -108,13 +108,13 @@ class Session {
           const remainingGoalsMessage = message;
           let goalMatch: null | RegExpExecArray = null;
           let goalsFound = 0;
-          while ((goalMatch = Pattern.goal.exec(remainingGoalsMessage)) != null) {
+          while ((goalMatch = Pattern.goal.exec(remainingGoalsMessage)) != null) { // tslint:disable-line no-conditional-assignment
             goalsFound++;
             goalMatch.shift();
             const [goalNumber, goalItems] = goalMatch;
             let goalMessage = `[#${goalNumber}]${"\n"}`;
             let itemMatch: null | RegExpExecArray = null;
-            while ((itemMatch = Pattern.goalItem.exec(goalItems)) != null) {
+            while ((itemMatch = Pattern.goalItem.exec(goalItems)) != null) { // tslint:disable-line no-conditional-assignment
               goalMessage += itemMatch[1].trim();
               goalMessage += ";\n";
             }
@@ -159,7 +159,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const session = new Session();
   context.subscriptions.push(vscode.commands.registerTextEditorCommand("redprl.refreshDiagnostics", (editor) => session.refresh(editor.document)));
   context.subscriptions.push(vscode.languages.setLanguageConfiguration("redprl", configuration));
-  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: 'redprl' }, documentSymbolProvider(session)));
+  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: "redprl" }, documentSymbolProvider(session)));
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration(session)));
   context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(onDidSaveTextDocument(session)));
   context.subscriptions.push(session);
