@@ -84,5 +84,7 @@
   },
   "dependencies": {
   },
-  "extensionDependencies": []
+  "extensionDependencies": [
+    "freebroccolo.input-assist"
+  ]
 }
