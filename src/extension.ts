@@ -4,7 +4,7 @@ import * as childProcess from "child_process";
 import * as vscode from "vscode";
 
 const configuration = {
-  wordPattern: /(-?\d*\.\d\w*)|[\w][\w\d]*([.][\w][\w\d]*)*|((?!\|[^\|])[\-;:!?.@*/\\&#%^+<=>|~$]+)/,
+  wordPattern: /\\[^\s]+|(-?\d*\.\d\w*)|[\w][\w\d]*|((?!\|[^\|])[\-;:!?.@*/\\&#%^+<=>|~$]+)/u,
 };
 
 class Pattern {
