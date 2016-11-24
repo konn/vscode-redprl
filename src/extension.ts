@@ -1,167 +1,17 @@
-// tslint:disable object-literal-sort-keys
+import * as vs from "vscode";
+import configuration from "./configuration";
+import * as event from "./event";
+import * as feature from "./feature";
+import Session from "./session";
 
-import * as childProcess from "child_process";
-import * as vscode from "vscode";
-
-const configuration = {
-  wordPattern: /\\[^\s]+|[^\\\s\d(){}\[\]#.][^\s(){}\[\]#.]*/u,
-};
-
-class Pattern {
-  public static diagnostic = /^(.*?):(\d+)[.](\d+)-(\d+)[.](\d+)\s*\[(Error|Info|Output|Warning)\]:\n[ ]{2}([\s\S]*?\n)\s*^\s*(?:(?=-)(?:.*\n){6}\s*([\s\S]*?))?(?=\s*\n{2})/gmu;
-  public static goal = /[ ]{2}Goal\s*(\d+)[.]\n([\s\S]*?)(?=\s*Goal|$)/gu;
-  public static goalItem = /^[ ]{4}(.*)$/gmu;
-  public static symbol = /^\b(Def|Tac|Thm)\b\s*\b([\w\-\/]+)\b/u;
-}
-
-class Session {
-  public readonly config: {
-    enableDiagnosticsOnSave: boolean;
-    path: null | string;
-  };
-  public readonly diagnostics: vscode.DiagnosticCollection;
-  public readonly output: vscode.OutputChannel;
-  public readonly symbols: Map<string, vscode.SymbolInformation[]> = new Map();
-
-  constructor() {
-    this.config = vscode.workspace.getConfiguration("redprl") as any;
-    this.diagnostics = vscode.languages.createDiagnosticCollection("redprl");
-    this.output = vscode.window.createOutputChannel("RedPRL");
-    if (this.config.path == null) vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
-    return this;
-  }
-
-  public dispose(): void {
-    return;
-  }
-
-  public execute(fileName: string): Promise<null | string> {
-    if (this.config.path == null) {
-      vscode.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
-      return Promise.resolve(null);
-    }
-    const child = childProcess.spawn(this.config.path, [fileName]);
-    return new Promise<null | string>((resolve) => {
-      let buffer = "";
-      child.stderr.on("data", (data: Buffer | string) => buffer += data);
-      child.stdout.on("data", (data: Buffer | string) => buffer += data);
-      child.on("close", (code: number) => code === 0 || code === 1 ? resolve(buffer) : resolve(null));
-      child.on("error", (error: Error & { code: string }) => {
-        if (error.code === "ENOENT") {
-          vscode.window.showWarningMessage(`Cannot find redprl binary at "${this.config.path}".`);
-          vscode.window.showWarningMessage(`Double check your path or try configuring "redprl.path" under "User Settings".`);
-        }
-      });
-    });
-  }
-
-  // FIXME: time to split this up…
-  public async refresh(document: vscode.TextDocument): Promise<void> {
-    const response = await this.execute(document.fileName);
-    if (response == null) return; // redprl failed
-    this.diagnostics.clear();
-    let collatedDiagnostics: Map<vscode.Uri, vscode.Diagnostic[]> = new Map();
-    let symbols: vscode.SymbolInformation[] = [];
-    let diagnosticMatch: null | RegExpExecArray = null;
-    while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) { // tslint:disable-line no-conditional-assignment
-      const goalStack: vscode.Diagnostic[] = [];
-      diagnosticMatch.shift(); // throw away entire match since we only want the captures
-      const path = diagnosticMatch.shift() as string;
-      let uri: vscode.Uri;
-      try { uri = vscode.Uri.parse(`file://${path}`); } catch (err) { continue; } // uri parsing failed
-      const startLine = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const startChar = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const   endLine = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const   endChar = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const range = new vscode.Range(startLine, startChar, endLine, endChar);
-      const messageKind = diagnosticMatch.shift() as string;
-      // parse symbols
-      if (messageKind === "Output") {
-        const output = diagnosticMatch.shift() as string;
-        const result = output.match(Pattern.symbol);
-        if (result == null) continue; // symbol parsing failed
-        result.shift();
-        const [symbolWire, name] = result;
-        let symbolCode = vscode.SymbolKind.Null;
-        switch (symbolWire) {
-          case "Def": symbolCode = vscode.SymbolKind.Function; break;
-          case "Tac": symbolCode = vscode.SymbolKind.Interface; break;
-          case "Thm": symbolCode = vscode.SymbolKind.Null; break;
-          default: break;
-        }
-        const location = new vscode.Location(uri, range);
-        symbols.push(new vscode.SymbolInformation(name, symbolCode, "", location));
-      } else { // parse diagnostics
-        let severity: null | vscode.DiagnosticSeverity = null;
-        switch (messageKind) {
-          case   "Error": severity = vscode.DiagnosticSeverity.Error; break;
-          case    "Info": severity = vscode.DiagnosticSeverity.Information; break;
-          case "Warning": severity = vscode.DiagnosticSeverity.Warning; break;
-          default: break;
-        }
-        if (severity == null) continue; // diagnostic parsing failed
-        if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
-        const diagnostics = collatedDiagnostics.get(uri) as vscode.Diagnostic[];
-        let message = diagnosticMatch.shift() as string;
-        // here we split up the goals into individual diagnostics since it looks better in vscode
-        if (messageKind === "Warning") {
-          const remainingGoalsMessage = message;
-          let goalMatch: null | RegExpExecArray = null;
-          let goalsFound = 0;
-          while ((goalMatch = Pattern.goal.exec(remainingGoalsMessage)) != null) { // tslint:disable-line no-conditional-assignment
-            goalsFound++;
-            goalMatch.shift();
-            const [goalNumber, goalItems] = goalMatch;
-            let goalMessage = `[#${goalNumber}]${"\n"}`;
-            let itemMatch: null | RegExpExecArray = null;
-            while ((itemMatch = Pattern.goalItem.exec(goalItems)) != null) { // tslint:disable-line no-conditional-assignment
-              goalMessage += itemMatch[1].trim();
-              goalMessage += ";\n";
-            }
-            const entry = new vscode.Diagnostic(range, goalMessage, vscode.DiagnosticSeverity.Information);
-            // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
-            goalStack.push(entry);
-          }
-          if (goalsFound > 0) message = "Remaining Obligations";
-        }
-        const entry = new vscode.Diagnostic(range, message, severity);
-        diagnostics.push(entry);
-        while (goalStack.length > 0) diagnostics.push(goalStack.shift() as any);
-      }
-    }
-    this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
-    this.symbols.set(document.uri.toString(), symbols);
-  }
-}
-
-function documentSymbolProvider(session: Session): vscode.DocumentSymbolProvider {
-  return {
-    provideDocumentSymbols: async (document) => {
-      if (document.languageId !== "redprl") return;
-      if (!session.symbols.has(document.uri.toString())) await session.refresh(document);
-      return session.symbols.get(document.uri.toString());
-    },
-  };
-}
-
-function onDidChangeConfiguration(session: Session): () => void {
-  return () => (session as any).config = vscode.workspace.getConfiguration("redprl");
-}
-
-function onDidSaveTextDocument(session: Session): (document: vscode.TextDocument) => void {
-  return (document) => {
-    if (document.languageId !== "redprl") return;
-    if (session.config.enableDiagnosticsOnSave) session.refresh(document);
-  };
-}
-
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(context: vs.ExtensionContext): void {
   const session = new Session();
-  context.subscriptions.push(vscode.commands.registerTextEditorCommand("redprl.refreshDiagnostics", (editor) => session.refresh(editor.document)));
-  context.subscriptions.push(vscode.languages.setLanguageConfiguration("redprl", configuration));
-  context.subscriptions.push(vscode.languages.registerDocumentSymbolProvider({ language: "redprl" }, documentSymbolProvider(session)));
-  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration(session)));
-  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(onDidSaveTextDocument(session)));
+  context.subscriptions.push(vs.commands.registerTextEditorCommand("redprl.refreshDiagnostics", (editor) => session.refreshImmediate(editor.document)));
+  context.subscriptions.push(vs.languages.setLanguageConfiguration("redprl", configuration));
+  context.subscriptions.push(vs.languages.registerDocumentSymbolProvider({ language: "redprl" }, feature.documentSymbolProvider(session)));
+  context.subscriptions.push(vs.workspace.onDidChangeConfiguration(event.onDidChangeConfiguration(session)));
+  context.subscriptions.push(vs.workspace.onDidSaveTextDocument(event.onDidSaveTextDocument(session)));
+  context.subscriptions.push(vs.workspace.onDidChangeTextDocument(event.onDidChangeTextDocument(session)));
   context.subscriptions.push(session);
 }
 
