@@ -58,7 +58,6 @@ export default class Session {
     let symbols: vs.SymbolInformation[] = [];
     let diagnosticMatch: null | RegExpExecArray = null;
     while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) { // tslint:disable-line no-conditional-assignment
-      const goalStack: vs.Diagnostic[] = [];
       diagnosticMatch.shift(); // throw away entire match since we only want the captures
       const path = diagnosticMatch.shift() as string;
       let uri: vs.Uri;
@@ -112,12 +111,11 @@ export default class Session {
               goalMessage += itemMatch[1].trim();
               goalMessage += ";\n";
             }
-            const entry = new vs.Diagnostic(range, goalMessage, vs.DiagnosticSeverity.Information);
-            // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
-            goalStack.push(entry);
+            diagnostics.push(new vs.Diagnostic(range, goalMessage, vs.DiagnosticSeverity.Information));
           }
           if (goalsFound > 0) {
             message = "Remaining Obligations";
+            diagnostics.splice(diagnostics.length - goalsFound, 0, new vs.Diagnostic(range, message, severity));
             let enclosing = symbols.find((symbol) => symbol.location.range.contains(range));
             if (enclosing) {
               const command = { command: "", title: `${goalsFound} goals` };
@@ -125,9 +123,7 @@ export default class Session {
             }
           }
         }
-        const entry = new vs.Diagnostic(range, message, severity);
-        diagnostics.push(entry);
-        while (goalStack.length > 0) diagnostics.push(goalStack.shift() as any);
+        if (message !== "Remaining Obligations") diagnostics.push(new vs.Diagnostic(range, message, severity));
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
