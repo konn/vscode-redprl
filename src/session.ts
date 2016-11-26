@@ -9,6 +9,7 @@ export default class Session {
     path: null | string;
   };
   public readonly diagnostics: vs.DiagnosticCollection;
+  public readonly lenses: Map<string, vs.CodeLens[]> = new Map();
   public readonly output: vs.OutputChannel;
   public readonly refreshDebounced: ((document: vs.TextDocument) => Promise<void>) & lodash.Cancelable;
   public readonly symbols: Map<string, vs.SymbolInformation[]> = new Map();
@@ -53,6 +54,7 @@ export default class Session {
     if (response == null) return; // redprl failed
     this.diagnostics.clear();
     let collatedDiagnostics: Map<vs.Uri, vs.Diagnostic[]> = new Map();
+    let lenses: vs.CodeLens[] = [];
     let symbols: vs.SymbolInformation[] = [];
     let diagnosticMatch: null | RegExpExecArray = null;
     while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) { // tslint:disable-line no-conditional-assignment
@@ -114,7 +116,14 @@ export default class Session {
             // entry.source = `${goalNumber}`; // FIXME: using the source field messes with indentation
             goalStack.push(entry);
           }
-          if (goalsFound > 0) message = "Remaining Obligations";
+          if (goalsFound > 0) {
+            message = "Remaining Obligations";
+            let enclosing = symbols.find((symbol) => symbol.location.range.contains(range));
+            if (enclosing) {
+              const command = { command: "", title: `${goalsFound} goals` };
+              lenses.push(new vs.CodeLens(enclosing.location.range, command));
+            }
+          }
         }
         const entry = new vs.Diagnostic(range, message, severity);
         diagnostics.push(entry);
@@ -122,6 +131,7 @@ export default class Session {
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
+    this.lenses.set(document.uri.toString(), lenses);
     this.symbols.set(document.uri.toString(), symbols);
   }
 }
