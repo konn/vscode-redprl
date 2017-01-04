@@ -39,6 +39,7 @@
       "patterns": [
         { "include": "#comment" },
         { "include": "#keyword" },
+        { "include": "#body-pipe-angles" },
         { "include": "#body-angles" },
         { "include": "#body-braces" },
         { "include": "#body-parens" },
@@ -62,6 +63,13 @@
           "match": "\\b([[:word:]]+)\\b",
           "name": "constant.language support.property-value entity.name.filename variable.interpolation"
         }
+      ]
+    },
+    "body-pipe-angles": {
+      "begin": "<\\|",
+      "end": "\\|>",
+      "patterns": [
+        { "include": "#body" }
       ]
     },
     "body-braces": {
