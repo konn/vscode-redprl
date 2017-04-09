@@ -9,7 +9,8 @@
     { "include": "#record" },
     { "include": "#tactic" },
     { "include": "#theorem" },
-    { "include": "#print" }
+    { "include": "#print" },
+    { "include": "#extract" }
   ],
   "repository": {
     "bind-name-args": {
@@ -290,6 +291,16 @@
     },
     "print": {
       "begin": "\\b(Print)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      }
+    },
+    "extract": {
+      "begin": "\\b(Extract)\\b",
       "end": "([.])",
       "beginCaptures": {
         "1": { "name": "storage.type" }
