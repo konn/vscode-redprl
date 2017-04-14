@@ -9,7 +9,8 @@
     { "include": "#record" },
     { "include": "#tactic" },
     { "include": "#theorem" },
-    { "include": "#print" }
+    { "include": "#print" },
+    { "include": "#extract" }
   ],
   "repository": {
     "bind-name-args": {
@@ -283,13 +284,23 @@
           "name": "keyword.control"
         },
         {
-          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
+          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
           "name": "keyword.control.less message.error"
         }
       ]
     },
     "print": {
       "begin": "\\b(Print)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      }
+    },
+    "extract": {
+      "begin": "\\b(Extract)\\b",
       "end": "([.])",
       "beginCaptures": {
         "1": { "name": "storage.type" }
