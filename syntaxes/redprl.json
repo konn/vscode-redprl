@@ -9,6 +9,7 @@
     { "include": "#record" },
     { "include": "#tactic" },
     { "include": "#theorem" },
+    { "include": "#rule" },
     { "include": "#print" },
     { "include": "#extract" }
   ],
@@ -328,6 +329,42 @@
     },
     "theorem": {
       "begin": "\\b(Thm)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      },
+      "patterns": [
+        { "include": "#bind-name-args" },
+        {
+          "begin": "(?<=[:])",
+          "end": "\\b(by)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control" }
+          },
+          "patterns": [
+            { "include": "#body-squares" }
+          ]
+        },
+        {
+          "begin": "(?<=by)",
+          "end": "(?=[.])",
+          "patterns": [
+            {
+              "begin": "\\[",
+              "end": "\\]",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rule": {
+      "begin": "\\b(Rule)\\b",
       "end": "([.])",
       "beginCaptures": {
         "1": { "name": "storage.type" }
