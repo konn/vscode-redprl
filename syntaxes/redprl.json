@@ -264,7 +264,7 @@
           ]
         },
         {
-          "match": "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ)\\b",
+          "match": "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ|([A-Z][[:word:]\\-\\/]+))\\b",
           "name": "constant.language"
         },
         {
