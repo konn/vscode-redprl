@@ -9,6 +9,7 @@
     { "include": "#record" },
     { "include": "#tactic" },
     { "include": "#theorem" },
+    { "include": "#rule" },
     { "include": "#print" },
     { "include": "#extract" }
   ],
@@ -41,7 +42,6 @@
         { "include": "#comment" },
         { "include": "#keyword" },
         { "include": "#body-pipe-angles" },
-        { "include": "#body-angles" },
         { "include": "#body-braces" },
         { "include": "#body-parens" },
         { "include": "#body-squares" },
@@ -50,19 +50,8 @@
           "name": "comment"
         },
         {
-          "match": "(->|,|:|\\.|@|\\*|'|%|`|<-|<\\||=(?!>)|=>|\\|(?!>)|\\|>|\\|\\||\\||~(?!>)|~>)",
+          "match": "(<-|->|,|:|\\.|@|\\*|'|%|`|<-|<\\||=(?!>)|=>|\\|(?!>)|\\|>|\\|\\||\\||~(?!>)|~>|>>)",
           "name": "keyword.control.less message.error"
-        }
-      ]
-    },
-    "body-angles": {
-      "begin": "<",
-      "end": ">",
-      "patterns": [
-        { "include": "#body" },
-        {
-          "match": "\\b([[:word:]]+)\\b",
-          "name": "constant.language support.property-value entity.name.filename variable.interpolation"
         }
       ]
     },
@@ -276,7 +265,7 @@
           ]
         },
         {
-          "match": "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ)\\b",
+          "match": "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ|([A-Z][[:word:]\\-\\/]+))\\b",
           "name": "constant.language"
         },
         {
@@ -284,7 +273,7 @@
           "name": "keyword.control"
         },
         {
-          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
+          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|rule|fresh|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
           "name": "keyword.control.less message.error"
         }
       ]
@@ -340,6 +329,42 @@
     },
     "theorem": {
       "begin": "\\b(Thm)\\b",
+      "end": "([.])",
+      "beginCaptures": {
+        "1": { "name": "storage.type" }
+      },
+      "endCaptures": {
+        "1": { "name": "comment" }
+      },
+      "patterns": [
+        { "include": "#bind-name-args" },
+        {
+          "begin": "(?<=[:])",
+          "end": "\\b(by)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control" }
+          },
+          "patterns": [
+            { "include": "#body-squares" }
+          ]
+        },
+        {
+          "begin": "(?<=by)",
+          "end": "(?=[.])",
+          "patterns": [
+            {
+              "begin": "\\[",
+              "end": "\\]",
+              "patterns": [
+                { "include": "#body" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rule": {
+      "begin": "\\b(Rule)\\b",
       "end": "([.])",
       "beginCaptures": {
         "1": { "name": "storage.type" }
