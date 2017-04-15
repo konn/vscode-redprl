@@ -272,7 +272,7 @@
           "name": "keyword.control"
         },
         {
-          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
+          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|rule|fresh|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
           "name": "keyword.control.less message.error"
         }
       ]
