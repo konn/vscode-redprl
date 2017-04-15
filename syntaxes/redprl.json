@@ -41,7 +41,6 @@
         { "include": "#comment" },
         { "include": "#keyword" },
         { "include": "#body-pipe-angles" },
-        { "include": "#body-angles" },
         { "include": "#body-braces" },
         { "include": "#body-parens" },
         { "include": "#body-squares" },
@@ -52,17 +51,6 @@
         {
           "match": "(->|,|:|\\.|@|\\*|'|%|`|<-|<\\||=(?!>)|=>|\\|(?!>)|\\|>|\\|\\||\\||~(?!>)|~>)",
           "name": "keyword.control.less message.error"
-        }
-      ]
-    },
-    "body-angles": {
-      "begin": "<",
-      "end": ">",
-      "patterns": [
-        { "include": "#body" },
-        {
-          "match": "\\b([[:word:]]+)\\b",
-          "name": "constant.language support.property-value entity.name.filename variable.interpolation"
         }
       ]
     },
