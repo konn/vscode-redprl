@@ -91,6 +91,5 @@
     "lodash": "4.17.2"
   },
   "extensionDependencies": [
-    "freebroccolo.input-assist"
   ]
 }
