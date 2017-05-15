@@ -96,34 +96,8 @@ export default class Session {
         if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
         const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
         let message = diagnosticMatch.shift() as string;
-        // here we split up the goals into individual diagnostics since it looks better in vscode
-        if (messageKind === "Warning") {
-          const remainingGoalsMessage = message;
-          let goalMatch: null | RegExpExecArray = null;
-          let goalsFound = 0;
-          while ((goalMatch = Pattern.goal.exec(remainingGoalsMessage)) != null) { // tslint:disable-line no-conditional-assignment
-            goalsFound++;
-            goalMatch.shift();
-            const [goalNumber, goalItems] = goalMatch;
-            let goalMessage = `[#${goalNumber}]${"\n"}`;
-            let itemMatch: null | RegExpExecArray = null;
-            while ((itemMatch = Pattern.goalItem.exec(goalItems)) != null) { // tslint:disable-line no-conditional-assignment
-              goalMessage += itemMatch[1].trim();
-              goalMessage += ";\n";
-            }
-            diagnostics.push(new vs.Diagnostic(range, goalMessage, vs.DiagnosticSeverity.Information));
-          }
-          if (goalsFound > 0) {
-            message = "Remaining Obligations";
-            diagnostics.splice(diagnostics.length - goalsFound, 0, new vs.Diagnostic(range, message, severity));
-            let enclosing = symbols.find((symbol) => symbol.location.range.contains(range));
-            if (enclosing) {
-              const command = { command: "", title: `${goalsFound} goals` };
-              lenses.push(new vs.CodeLens(enclosing.location.range, command));
-            }
-          }
-        }
-        if (message !== "Remaining Obligations") diagnostics.push(new vs.Diagnostic(range, message, severity));
+
+        diagnostics.push(new vs.Diagnostic(range, message, severity));
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
