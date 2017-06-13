@@ -27,7 +27,18 @@
   "main": "./out/src/extension",
   "contributes": {
     "commands": [
-
+      {
+        "command": "redprl.insertProbe",
+        "title": "RedPRL: Insert Probe"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "redprl.insertProbe",
+        "key": "ctrl+alt+p",
+        "mac": "ctrl+cmd+p",
+        "when": "editorTextFocus"
+      }
     ],
     "configuration": {
       "type": "object",

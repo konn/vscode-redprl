@@ -11,6 +11,12 @@ export function activate(context: vs.ExtensionContext): void {
     vs.languages.setLanguageConfiguration("redprl", configuration),
     vs.languages.registerCodeLensProvider({ language }, feature.codeLensProvider(session)),
     vs.languages.registerDocumentSymbolProvider({ language }, feature.documentSymbolProvider(session)),
+    vs.commands.registerTextEditorCommand("redprl.insertProbe", (editor) => {
+      editor.edit((editBuilder) => {
+        editBuilder.insert(editor.selection.start, "?hole");
+      });
+    }),
+
     vs.workspace.onDidChangeConfiguration(event.onDidChangeConfiguration(session)),
     vs.workspace.onDidSaveTextDocument(event.onDidSaveTextDocument(session)),
     vs.workspace.onDidChangeTextDocument(event.onDidChangeTextDocument(session)),
