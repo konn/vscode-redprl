@@ -53,9 +53,9 @@ export default class Session {
     const response = await this.execute(document);
     if (response == null) return; // redprl failed
     this.diagnostics.clear();
-    let collatedDiagnostics: Map<vs.Uri, vs.Diagnostic[]> = new Map();
-    let lenses: vs.CodeLens[] = [];
-    let symbols: vs.SymbolInformation[] = [];
+    const collatedDiagnostics: Map<vs.Uri, vs.Diagnostic[]> = new Map();
+    const lenses: vs.CodeLens[] = [];
+    const symbols: vs.SymbolInformation[] = [];
     let diagnosticMatch: null | RegExpExecArray = null;
     while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) { // tslint:disable-line no-conditional-assignment
       diagnosticMatch.shift(); // throw away entire match since we only want the captures
@@ -95,10 +95,10 @@ export default class Session {
         if (severity == null) continue; // diagnostic parsing failed
         if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
         const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
-        let message = diagnosticMatch.shift() as string;
+        const message = diagnosticMatch.shift() as string;
 
         if (Pattern.remainingObligations.test(message)) {
-          let command = { command: "", title: `★ ${message}` };
+          const command = { command: "", title: `★ ${message}` };
           lenses.push(new vs.CodeLens(range, command));
         } else {
           diagnostics.push(new vs.Diagnostic(range, message, severity));
