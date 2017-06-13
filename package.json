@@ -27,10 +27,7 @@
   "main": "./out/src/extension",
   "contributes": {
     "commands": [
-      {
-        "command": "redprl.refreshDiagnostics",
-        "title": "RedPRL: refresh diagnostics"
-      }
+
     ],
     "configuration": {
       "type": "object",
