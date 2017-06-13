@@ -97,7 +97,12 @@ export default class Session {
         const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
         let message = diagnosticMatch.shift() as string;
 
-        diagnostics.push(new vs.Diagnostic(range, message, severity));
+        if (Pattern.remainingObligations.test(message)) {
+          let command = { command: "", title: `★ ${message}` };
+          lenses.push(new vs.CodeLens(range, command));
+        } else {
+          diagnostics.push(new vs.Diagnostic(range, message, severity));
+        }
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
