@@ -28,8 +28,16 @@
   "contributes": {
     "commands": [
       {
-        "command": "redprl.refreshDiagnostics",
-        "title": "RedPRL: refresh diagnostics"
+        "command": "redprl.insertProbe",
+        "title": "RedPRL: Insert Probe"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "redprl.insertProbe",
+        "key": "ctrl+alt+p",
+        "mac": "ctrl+cmd+p",
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {
