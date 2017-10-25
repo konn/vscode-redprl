@@ -98,5 +98,7 @@
   "dependencies": {
     "lodash": "^4.17.4"
   },
-  "extensionDependencies": []
+  "extensionDependencies": [
+    "patrys.vscode-code-outline"
+  ]
 }
