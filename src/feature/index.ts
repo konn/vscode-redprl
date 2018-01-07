@@ -4,4 +4,4 @@ import documentSymbolProvider from "./documentSymbolProvider";
 export {
   codeLensProvider,
   documentSymbolProvider,
-}
+};
