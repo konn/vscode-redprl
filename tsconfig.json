@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "allowJs": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "lib": [
@@ -16,12 +15,13 @@
     "noUnusedParameters": true,
     "outDir": "out",
     "pretty": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "sourceMap": true,
     "strictNullChecks": true,
     "target": "es2015"
   },
   "exclude": [
+    "out",
     "node_modules",
     ".vscode-test"
   ]
