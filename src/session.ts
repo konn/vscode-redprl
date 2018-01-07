@@ -1,6 +1,7 @@
 import * as childProcess from "child_process";
 import * as lodash from "lodash";
 import * as vs from "vscode";
+import { parseMessages } from "./messageParser";
 import Pattern from "./pattern";
 
 export default class Session {
@@ -48,67 +49,36 @@ export default class Session {
     });
   }
 
-  // FIXME: time to split this up…
   public async refreshImmediate(document: vs.TextDocument): Promise<void> {
     const response = await this.execute(document);
     if (response == null) {
       console.warn("running 'redprl' failed");
       return;
     }
+    const messages = parseMessages(response);
     this.diagnostics.clear();
     const collatedDiagnostics: Map<vs.Uri, vs.Diagnostic[]> = new Map();
     const lenses: vs.CodeLens[] = [];
     const symbols: vs.SymbolInformation[] = [];
-    let diagnosticMatch: null | RegExpExecArray = null;
-    while ((diagnosticMatch = Pattern.diagnostic.exec(response)) != null) { // tslint:disable-line no-conditional-assignment
-      diagnosticMatch.shift(); // throw away entire match since we only want the captures
-      const path = diagnosticMatch.shift() as string;
+    for (const message of messages) {
       let uri: vs.Uri;
-      try { uri = vs.Uri.parse(`file://${path}`); } catch (err) { continue; } // uri parsing failed
-      const startLine = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const startChar = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const   endLine = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const   endChar = parseInt(diagnosticMatch.shift() as string, 10) - 1;
-      const range = new vs.Range(startLine, startChar, endLine, endChar);
-      const messageKind = diagnosticMatch.shift() as string;
-      // parse symbols
-      if (messageKind === "Output") {
-        const output = diagnosticMatch.shift() as string;
-        const result = output.match(Pattern.symbol);
-        if (result == null) continue; // symbol parsing failed
-        result.shift();
-        const [symbolWire, name] = result;
-        let symbolCode = vs.SymbolKind.Null;
-        switch (symbolWire) {
-          case "Def": symbolCode = vs.SymbolKind.Function; break;
-          case "Tac": symbolCode = vs.SymbolKind.Interface; break;
-          case "Thm": symbolCode = vs.SymbolKind.Null; break;
-          default: break;
-        }
-        const location = new vs.Location(uri, range);
-        symbols.push(new vs.SymbolInformation(name, symbolCode, "", location));
-      } else { // parse diagnostics
-        let severity: null | vs.DiagnosticSeverity = null;
-        switch (messageKind) {
-          case   "Error": severity = vs.DiagnosticSeverity.Error; break;
-          case    "Info": severity = vs.DiagnosticSeverity.Information; break;
-          case "Warning": severity = vs.DiagnosticSeverity.Warning; break;
-          default: break;
-        }
-        if (severity == null) {
-          console.warn(`diagnostic parsing failed: unknown message kind '${messageKind}'`);
-          continue;
-        }
-        if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
-        const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
-        const message = diagnosticMatch.shift() as string;
+      try { uri = vs.Uri.parse(`file://${message.path}`); } catch (err) { continue; } // uri parsing failed
+      let severity: null | vs.DiagnosticSeverity = null;
+      switch (message.kind) {
+        case   "Error": severity = vs.DiagnosticSeverity.Error; break;
+        case    "Info": severity = vs.DiagnosticSeverity.Information; break;
+        case "Warning": severity = vs.DiagnosticSeverity.Warning; break;
+        default: break;
+      }
+      if (severity == null) { continue; }
+      if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
+      const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
 
-        if (Pattern.remainingObligations.test(message)) {
-          const command = { command: "", title: `★ ${message}` };
-          lenses.push(new vs.CodeLens(range, command));
-        } else {
-          diagnostics.push(new vs.Diagnostic(range, message, severity));
-        }
+      if (Pattern.remainingObligations.test(message.content[0])) {
+        const command = { command: "", title: `★ ${message.content.join("\n")}` };
+        lenses.push(new vs.CodeLens(message.range, command));
+      } else {
+        diagnostics.push(new vs.Diagnostic(message.range, message.content.join("\n"), severity));
       }
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
