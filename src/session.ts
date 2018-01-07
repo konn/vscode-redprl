@@ -13,7 +13,6 @@ export default class Session {
   public readonly lenses: Map<string, vs.CodeLens[]> = new Map();
   public readonly output: vs.OutputChannel;
   public readonly refreshDebounced: ((document: vs.TextDocument) => Promise<void>) & lodash.Cancelable;
-  public readonly symbols: Map<string, vs.SymbolInformation[]> = new Map();
 
   constructor() {
     this.config = vs.workspace.getConfiguration("redprl") as any;
@@ -59,7 +58,6 @@ export default class Session {
     this.diagnostics.clear();
     const collatedDiagnostics: Map<vs.Uri, vs.Diagnostic[]> = new Map();
     const lenses: vs.CodeLens[] = [];
-    const symbols: vs.SymbolInformation[] = [];
     for (const message of messages) {
       let uri: vs.Uri;
       try { uri = vs.Uri.parse(`file://${message.path}`); } catch (err) { continue; } // uri parsing failed
@@ -83,6 +81,5 @@ export default class Session {
     }
     this.diagnostics.set(Array.from(collatedDiagnostics.entries()));
     this.lenses.set(document.uri.toString(), lenses);
-    this.symbols.set(document.uri.toString(), symbols);
   }
 }
