@@ -51,7 +51,7 @@ export default class Session {
   public async refreshImmediate(document: vs.TextDocument): Promise<void> {
     const response = await this.execute(document);
     if (response == null) {
-      console.warn("running 'redprl' failed");
+      vs.window.showErrorMessage("running 'redprl' failed");
       return;
     }
     const messages = parseMessages(response);
