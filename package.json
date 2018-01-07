@@ -24,7 +24,7 @@
   "activationEvents": [
     "onLanguage:redprl"
   ],
-  "main": "./out/src/extension",
+  "main": "./out/extension",
   "contributes": {
     "commands": [
       {
@@ -84,7 +84,8 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -watch -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "vscode:prepublish": "tsc -p ./"
   },
