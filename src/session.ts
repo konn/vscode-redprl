@@ -51,7 +51,10 @@ export default class Session {
   // FIXME: time to split this up…
   public async refreshImmediate(document: vs.TextDocument): Promise<void> {
     const response = await this.execute(document);
-    if (response == null) return; // redprl failed
+    if (response == null) {
+      console.warn("running 'redprl' failed");
+      return;
+    }
     this.diagnostics.clear();
     const collatedDiagnostics: Map<vs.Uri, vs.Diagnostic[]> = new Map();
     const lenses: vs.CodeLens[] = [];
@@ -92,7 +95,10 @@ export default class Session {
           case "Warning": severity = vs.DiagnosticSeverity.Warning; break;
           default: break;
         }
-        if (severity == null) continue; // diagnostic parsing failed
+        if (severity == null) {
+          console.warn(`diagnostic parsing failed: unknown message kind '${messageKind}'`);
+          continue;
+        }
         if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
         const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
         const message = diagnosticMatch.shift() as string;
