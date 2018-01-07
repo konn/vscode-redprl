@@ -14,16 +14,10 @@
     "url": "https://github.com/freebroccolo/vscode-redprl.git"
   },
   "engines": {
-    "vscode": "^1.5.0"
+    "vscode": "^1.19.1"
   },
-  "categories": [
-    "Debuggers",
-    "Languages",
-    "Linters"
-  ],
-  "activationEvents": [
-    "onLanguage:redprl"
-  ],
+  "categories": ["Debuggers", "Languages", "Linters"],
+  "activationEvents": ["onLanguage:redprl"],
   "main": "./out/extension",
   "contributes": {
     "commands": [
@@ -73,30 +67,30 @@
     "languages": [
       {
         "id": "redprl",
-        "aliases": [
-          "RedPRL"
-        ],
-        "extensions": [
-          ".prl"
-        ],
+        "aliases": ["RedPRL"],
+        "extensions": [".prl"],
         "configuration": "./redprl.configuration.json"
       }
     ]
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "prebuild": "npm run format && npm run lint",
+    "build": "npm run prebuild && tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "format": "./node_modules/.bin/prettier --write \"src/**/*.ts\"",
+    "lint": "tslint --project tsconfig.json",
     "postinstall": "node ./node_modules/vscode/bin/install",
-    "vscode:prepublish": "tsc -p ./"
+    "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.66",
-    "@types/node": "^7.0.31",
-    "tslint": "^5.4.3",
-    "typescript": "^2.3.4",
-    "vscode": "^1.1.0"
+    "@types/lodash": "4.14.92",
+    "@types/node": "8.5.7",
+    "prettier": "1.9.2",
+    "tslint": "5.8.0",
+    "typescript": "2.6.2"
   },
   "dependencies": {
-    "lodash": "^4.17.4"
+    "lodash": "4.17.4",
+    "vscode": "1.1.10"
   }
 }

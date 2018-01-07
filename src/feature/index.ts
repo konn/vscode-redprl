@@ -1,5 +1,3 @@
 import codeLensProvider from "./codeLensProvider";
 
-export {
-  codeLensProvider,
-};
+export { codeLensProvider };

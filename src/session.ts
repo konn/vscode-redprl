@@ -19,7 +19,8 @@ export default class Session {
     this.diagnostics = vs.languages.createDiagnosticCollection("redprl");
     this.output = vs.window.createOutputChannel("RedPRL");
     this.refreshDebounced = lodash.debounce(this.refreshImmediate, 500, { trailing: true });
-    if (this.config.path == null) vs.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
+    if (this.config.path == null)
+      vs.window.showWarningMessage(`The RedPRL binary path needs to be configured. See the "redprl.path" setting.`);
     return this;
   }
 
@@ -33,18 +34,20 @@ export default class Session {
       return Promise.resolve(null);
     }
     const child = childProcess.spawn(this.config.path, [`--from-stdin=${document.fileName}`]);
-    return new Promise<null | string>((resolve) => {
+    return new Promise<null | string>(resolve => {
       let buffer = "";
-      child.on("close", (code: number) => code === 0 || code === 1 ? resolve(buffer) : resolve(null));
+      child.on("close", (code: number) => (code === 0 || code === 1 ? resolve(buffer) : resolve(null)));
       child.on("error", (error: Error & { code: string }) => {
         if (error.code === "ENOENT") {
           vs.window.showWarningMessage(`Cannot find redprl binary at "${this.config.path}".`);
-          vs.window.showWarningMessage(`Double check your path or try configuring "redprl.path" under "User Settings".`);
+          vs.window.showWarningMessage(
+            `Double check your path or try configuring "redprl.path" under "User Settings".`,
+          );
         }
       });
       child.stdin.write(document.getText(), "utf-8", () => child.stdin.end());
-      child.stderr.on("data", (data: Buffer | string) => buffer += data);
-      child.stdout.on("data", (data: Buffer | string) => buffer += data);
+      child.stderr.on("data", (data: Buffer | string) => (buffer += data));
+      child.stdout.on("data", (data: Buffer | string) => (buffer += data));
     });
   }
 
@@ -60,18 +63,30 @@ export default class Session {
     const lenses: vs.CodeLens[] = [];
     for (const message of messages) {
       let uri: vs.Uri;
-      try { uri = vs.Uri.parse(`file://${message.path}`); } catch (err) { continue; } // uri parsing failed
+      try {
+        uri = vs.Uri.parse(`file://${message.path}`);
+      } catch (err) {
+        continue;
+      } // uri parsing failed
       let severity: null | vs.DiagnosticSeverity = null;
       switch (message.kind) {
-        case   "Error": severity = vs.DiagnosticSeverity.Error; break;
-        case    "Info": severity = vs.DiagnosticSeverity.Information; break;
-        case "Warning": severity = vs.DiagnosticSeverity.Warning; break;
-        default: break;
+        case "Error":
+          severity = vs.DiagnosticSeverity.Error;
+          break;
+        case "Info":
+          severity = vs.DiagnosticSeverity.Information;
+          break;
+        case "Warning":
+          severity = vs.DiagnosticSeverity.Warning;
+          break;
+        default:
+          break;
       }
-      if (severity == null) { continue; }
+      if (severity == null) {
+        continue;
+      }
       if (!collatedDiagnostics.has(uri)) collatedDiagnostics.set(uri, []);
       const diagnostics = collatedDiagnostics.get(uri) as vs.Diagnostic[];
-
       if (Pattern.remainingObligations.test(message.content[0])) {
         const command = { command: "", title: `★ ${message.content.join("\n")}` };
         lenses.push(new vs.CodeLens(message.range, command));
