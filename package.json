@@ -87,10 +87,10 @@
     "@types/node": "8.5.7",
     "prettier": "1.9.2",
     "tslint": "5.8.0",
-    "typescript": "2.6.2"
+    "typescript": "2.6.2",
+    "vscode": "1.1.10"
   },
   "dependencies": {
-    "lodash": "4.17.4",
-    "vscode": "1.1.10"
+    "lodash": "4.17.4"
   }
 }
