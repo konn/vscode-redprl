@@ -15,8 +15,7 @@
       ],
       "sourceMaps": true,
       "stopOnEntry": false,
-      "smartStep": true,
-      "preLaunchTask": "npm: watch"
+      "smartStep": true
     }
   ]
 }
