@@ -1,8 +1,6 @@
 {
   "scopeName": "source.redprl",
-  "fileTypes": [
-    "prl"
-  ],
+  "fileTypes": ["prl"],
   "patterns": [
     {
       "include": "#comment"
@@ -241,7 +239,7 @@
       "name": "comment.line"
     },
     "definition": {
-      "begin": "\\b(Def|definition)\\b",
+      "begin": "\\b(Def|define)\\b",
       "end": "([.])",
       "beginCaptures": {
         "1": {
@@ -345,7 +343,8 @@
           ]
         },
         {
-          "match": "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ|([A-Z][[:word:]\\-\\/]+))\\b",
+          "match":
+            "\\b(base|bool|coe|dim|exn|exp|ff|fst|hcom|if(?!/)|if/s|lbl|loop|lvl|paths|S1|sbool|snd|true|tt|type|univ|([A-Z][[:word:]\\-\\/]+))\\b",
           "name": "constant.language"
         },
         {
@@ -353,7 +352,8 @@
           "name": "keyword.control"
         },
         {
-          "match": "\\b(auto(?!-)|auto-step|ceq/refl|elim|rule|fresh|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
+          "match":
+            "\\b(auto(?!-)|auto-step|ceq/refl|elim|rule|fresh|unfold|eval-goal|head-expand|hyp|id|in|lemma|progress|rec|repeat|symmetry|synth|tac)\\b",
           "name": "keyword.control.less message.error"
         }
       ]
@@ -474,7 +474,7 @@
       ]
     },
     "rule": {
-      "begin": "\\b(Rule)\\b",
+      "begin": "\\b(Rule|rule)\\b",
       "end": "([.])",
       "beginCaptures": {
         "1": {
